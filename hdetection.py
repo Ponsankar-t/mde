@@ -7,9 +7,9 @@ import numpy as np
 # Define the path to your hand landmark model.
 model_path = '/media/ponsankar/Hold/PROCV_01/hand_landmarker.task'
 
-# Calibration factor: Replace with your own factor based on setup calibration.
-# This value is distance in cm per pixel. You can calculate it by measuring known distances in your setup.
-calibration_factor = 0.026  # Example: 1 pixel = 0.026 cm
+# Calibration factors for x, y, and z dimensions.
+calibration_factor_xy = 0.026  # cm per pixel in x and y dimensions (example)
+calibration_factor_z = 1.0     # Scaling for z dimension (example)
 
 # MediaPipe Task setup
 BaseOptions = mp.tasks.BaseOptions
@@ -18,9 +18,13 @@ HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
-# Function to calculate Euclidean distance
-def calculate_distance(point1, point2):
-    return np.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
+# Function to calculate Euclidean distance considering depth
+def calculate_3d_distance(point1, point2):
+    return np.sqrt(
+        (point1[0] - point2[0]) ** 2 +
+        (point1[1] - point2[1]) ** 2 +
+        (point1[2] - point2[2]) ** 2
+    )
 
 # Function to process results and draw landmarks
 def process_result(frame, result: HandLandmarkerResult):
@@ -33,17 +37,18 @@ def process_result(frame, result: HandLandmarkerResult):
             thumb_tip = hand_landmark[4]
             index_tip = hand_landmark[8]
 
-            # Convert to pixel coordinates
-            thumb_point = (int(thumb_tip.x * w), int(thumb_tip.y * h))
-            index_point = (int(index_tip.x * w), int(index_tip.y * h))
+            # Convert to pixel coordinates (x, y) and add depth (z)
+            thumb_point = (int(thumb_tip.x * w), int(thumb_tip.y * h), thumb_tip.z)
+            index_point = (int(index_tip.x * w), int(index_tip.y * h), index_tip.z)
 
             # Calculate distance between thumb tip and index finger tip
-            distance = calculate_distance(thumb_point, index_point)
+            distance_xy = np.sqrt((thumb_point[0] - index_point[0]) ** 2 + (thumb_point[1] - index_point[1]) ** 2)
+            distance_3d = calculate_3d_distance(thumb_point, index_point)
 
             # Check if thumb and index finger are touching
-            if distance < 20:  # Threshold for "touching"
+            if distance_xy < 20:  # Threshold for "touching"
                 touch_points.append(thumb_point)  # Add thumb point to touch points
-                cv2.circle(frame, thumb_point, 10, (0, 0, 255), -1)  # Mark the touching point
+                cv2.circle(frame, (thumb_point[0], thumb_point[1]), 10, (0, 0, 255), -1)  # Mark the touching point
                 cv2.putText(frame, f"Touch!", (thumb_point[0] + 10, thumb_point[1] - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
@@ -67,15 +72,19 @@ def process_result(frame, result: HandLandmarkerResult):
 
         # Display the distance and draw a line if two touch points are detected
         if len(touch_points) == 2:
-            pixel_distance = calculate_distance(touch_points[0], touch_points[1])
-            cm_distance = pixel_distance * calibration_factor  # Convert to cm
-            midpoint = ((touch_points[0][0] + touch_points[1][0]) // 2,
-                        (touch_points[0][1] + touch_points[1][1]) // 2)
-            
+            # Calculate 3D distance between the touch points
+            distance_3d = calculate_3d_distance(touch_points[0], touch_points[1])
+
+            # Convert 3D distance to cm
+            cm_distance = distance_3d * calibration_factor_xy  # Adjust for x/y calibration and depth scaling
+
             # Draw a line connecting the two touch points
-            cv2.line(frame, touch_points[0], touch_points[1], (0, 255, 255), 2)
-            
+            pt1 = (touch_points[0][0], touch_points[0][1])
+            pt2 = (touch_points[1][0], touch_points[1][1])
+            cv2.line(frame, pt1, pt2, (0, 255, 255), 2)
+
             # Display the distance along the line
+            midpoint = ((pt1[0] + pt2[0]) // 2, (pt1[1] + pt2[1]) // 2)
             cv2.putText(frame, f"Distance: {cm_distance:.2f} cm", midpoint,
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
 
