@@ -8,7 +8,7 @@ import numpy as np
 model_path = '/media/ponsankar/Hold/PROCV_01/hand_landmarker.task' 
 
 # Calibration factors for x, y, and z dimensions.
-calibration_factor_xy = 0.026  # cm per pixel in x and y dimensions (example) 
+calibration_factor_xy = 0.026  # cm per pixel in x and y dimensions (example)
 calibration_factor_z = 1.0     # Scaling for z dimension (example)
 
 # MediaPipe Task setup
