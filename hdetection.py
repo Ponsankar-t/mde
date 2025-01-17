@@ -29,7 +29,7 @@ def calculate_3d_distance(point1, point2):
 # Function to process results and draw landmarks
 def process_result(frame, result: HandLandmarkerResult):
     if result.hand_landmarks:
-        h, w, _ = frame.shape  # Frame dimensions
+        h, w, _ = frame.shape  # Frame dimensions 
         touch_points = []  # Store touch points (thumb tips) for both hands
 
         for hand_idx, hand_landmark in enumerate(result.hand_landmarks):
