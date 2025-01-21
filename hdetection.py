@@ -5,7 +5,7 @@ from mediapipe.tasks.python import vision
 import numpy as np 
 
 # Define the path to your hand landmark model.
-model_path = '/media/ponsankar/Hold/PROCV_01/hand_landmarker.task' 
+model_path = '/media/ponsankar/Hold/PROCV_01/hand_landmarker.task'
 
 # Calibration factors for x, y, and z dimensions.
 calibration_factor_xy = 0.026  # cm per pixel in x and y dimensions (example)
